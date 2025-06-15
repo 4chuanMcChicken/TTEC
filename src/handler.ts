@@ -38,7 +38,6 @@ export const handler = async (event: any) => {
     try {
       const apiKeyJson = await secretsService.getSecret(OPENAI_KEY_SECRET);
       const apiKey = JSON.parse(apiKeyJson).OPENAI_API_KEY;
-      console.log('🔑 API key retrieved:', apiKey);
       const llmService = new LLMService({ 
         apiKey, 
         model: 'o4-mini-2025-04-16' 

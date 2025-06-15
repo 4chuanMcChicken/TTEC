@@ -47,6 +47,7 @@ export class LLMService {
       const content = response.choices[0]?.message?.content ?? '';
       // Parse LLM response and update scores
       const parsed = JSON.parse(content);
+      console.log(content)
 
       // 2) normalize into an array
       const scoresArray: { word: string; score: number }[] = Array.isArray(parsed)
