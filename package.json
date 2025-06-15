@@ -6,7 +6,7 @@
     "test": "test"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -R assets dist/assets",
     "test":  "jest"
   },
   "keywords": [],
