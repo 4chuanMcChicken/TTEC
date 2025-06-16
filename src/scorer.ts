@@ -1,6 +1,16 @@
 // src/scorer/index.ts
-import { trie } from './mapper';
 import fs from 'fs';
+import { WordScore, ScoringConfig, VanityError, VanityGenerationError } from './types';
+
+/**
+ * Default scoring configuration
+ * @constant
+ */
+const DEFAULT_CONFIG: ScoringConfig = {
+  pointsPerLetter: 10,
+  patternBonus: 5,
+  minWordLength: 3
+};
 
 /**
  * Dictionary set for word lookup
@@ -18,39 +28,59 @@ const words = new Set(
  * Uses dynamic programming approach for substring matching
  * 
  * Scoring criteria:
- * 1. Word Recognition: length * 10 points for each valid word
- * 2. Pattern Bonus: 5 points for 3+ consecutive identical characters
+ * 1. Word Recognition: length * pointsPerLetter points for each valid word
+ * 2. Pattern Bonus: patternBonus points for 3+ consecutive identical characters
  * 
  * Time Complexity: O(n^2) where n is the word length
  * Space Complexity: O(1) using Set for constant-time lookups
  * 
  * @param {string} word - The potential vanity number to score
- * @returns {number} The calculated score
+ * @param {ScoringConfig} [config] - Optional scoring configuration
+ * @returns {WordScore} Detailed scoring result
+ * @throws {VanityGenerationError} If word is invalid
  */
-export function score(word: string): number {
-  const w = word.toLowerCase();
-  let longest = 0;
-  const { root, maxWordLength } = trie;
-
-  // We only care about substrings of length ≥ 3
-  const minLen = 3;
-  for (let i = 0; i <= w.length - minLen; i++) {
-    let node = root;
-    // Walk the trie from this starting index
-    for (let j = i; j < w.length; j++) {
-      const ch = w[j];
-      node = node.children[ch];
-      if (!node) break;             // dead-end: no further matches
-      const len = j - i + 1;
-      if (node.isWord && len > longest) {
-        longest = len;
-        // if we've hit the absolute longest in your dictionary, stop early
-        if (longest === maxWordLength) break;
-      }
-    }
-    if (longest === maxWordLength) break;
+export function score(word: string, config: ScoringConfig = DEFAULT_CONFIG): WordScore {
+  if (!word || typeof word !== 'string') {
+    throw new VanityGenerationError(
+      VanityError.INVALID_PHONE_NUMBER,
+      'Invalid word input'
+    );
   }
 
-  const repeat = /(.)\1{2,}/.test(w) ? 1 : 0;
-  return longest * 10 + repeat;
+  const w = word.toLowerCase();
+  const foundWords: string[] = [];
+  let baseScore = 0;
+
+  // Find all valid words using dynamic programming
+  for (let i = 0; i < w.length; i++) {
+    for (let j = i + config.minWordLength; j <= w.length; j++) {
+      const substring = w.slice(i, j);
+      if (words.has(substring)) {
+        foundWords.push(substring);
+        baseScore += substring.length * config.pointsPerLetter;
+      }
+    }
+  }
+
+  // Calculate pattern bonus
+  const bonusScore = /(.)\1{2,}/.test(w) ? config.patternBonus : 0;
+
+  return {
+    word: word,
+    baseScore: baseScore,
+    bonusScore: bonusScore,
+    totalScore: baseScore + bonusScore,
+    foundWords: foundWords
+  };
+}
+
+/**
+ * Batch scores multiple vanity number candidates
+ * 
+ * @param {string[]} candidates - Array of vanity numbers to score
+ * @param {ScoringConfig} [config] - Optional scoring configuration
+ * @returns {WordScore[]} Array of scoring results
+ */
+export function batchScore(candidates: string[], config?: ScoringConfig): WordScore[] {
+  return candidates.map(word => score(word, config));
 }

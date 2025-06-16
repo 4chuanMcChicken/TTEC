@@ -213,4 +213,42 @@ The application uses the following environment variables:
 3. **Integration Options**:
    - Amazon Connect integration
    - API Gateway for REST endpoints
-   - SMS notification support 
+   - SMS notification support
+
+## Testing
+
+### Test Framework and Tools
+
+The project uses Jest with TypeScript support for comprehensive testing:
+- Jest: Primary testing framework
+- ts-jest: TypeScript support
+- @types/jest: TypeScript type definitions
+
+### Test Structure
+
+```
+test/
+├── unit/
+│   ├── mapper.test.ts    # Tests for phone number mapping
+│   ├── scorer.test.ts    # Tests for scoring algorithm
+│   └── handler.test.ts   # Tests for Lambda handler
+└── integration/
+    └── vanity.test.ts    # End-to-end integration tests
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run specific test file
+npm test -- mapper.test.ts
+```
+
