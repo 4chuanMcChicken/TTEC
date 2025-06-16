@@ -1,45 +1,73 @@
 # VanityConnect - Phone Number Vanity Generator
 
-A serverless application that converts phone numbers into memorable vanity numbers using a heuristic scoring algorithm. Built with AWS Lambda and DynamoDB.
+A serverless application that converts phone numbers into memorable vanity numbers using a sophisticated combination of algorithms. Built with AWS Lambda and DynamoDB.
 
 ## Overview
 
-VanityConnect takes a phone number and generates meaningful vanity numbers by mapping digits to letters using the standard phone keypad mapping (e.g., 2=ABC, 3=DEF, etc.). The system uses a sophisticated scoring algorithm to rank the generated combinations and returns the top 5 most memorable options.
+VanityConnect takes a phone number and generates meaningful vanity numbers by mapping digits to letters using the standard phone keypad mapping (e.g., 2=ABC, 3=DEF, etc.). The system employs multiple algorithmic approaches to generate and rank the combinations, ensuring both efficiency and quality of results.
 
 ## Algorithm Details
 
-### Phone Number to Vanity Conversion
+### 1. Phone Number to Vanity Conversion
 
-1. **Keypad Mapping**:
-   ```
-   2: ABC    3: DEF    4: GHI    5: JKL
-   6: MNO    7: PQRS   8: TUV    9: WXYZ
-   ```
+#### Keypad Mapping
+```
+2: ABC    3: DEF    4: GHI    5: JKL
+6: MNO    7: PQRS   8: TUV    9: WXYZ
+```
 
-2. **Combination Generation**:
-   - Takes the last 7 digits of the phone number
-   - Generates all possible letter combinations using the keypad mapping
-   - Each digit can be mapped to any of its corresponding letters
+#### Generation Algorithm
+The system uses a Cartesian Product algorithm to generate all possible combinations:
+- Takes the last 7 digits of the phone number
+- For each digit, maps to possible letters using the keypad mapping
+- Uses dynamic array expansion to build combinations
+- Time Complexity: O(4^n) where n is number of digits
+- Space Complexity: O(4^n) to store all combinations
 
-### Scoring Algorithm
+Example:
+```
+Input: "234"
+Step 1: [A,B,C]
+Step 2: [AD,AE,AF,BD,BE,BF,CD,CE,CF]
+Step 3: [ADG,ADH,ADI,AEG,AEH,AEI,...,CFI]
+```
 
-The scoring system uses two main criteria to rank vanity number candidates:
+### 2. Scoring System
 
-1. **Dictionary Word Recognition** (Primary Score):
-   - Uses a predefined dictionary (`assets/words.txt`)
-   - Scans for valid English words within the combination
-   - Longer words receive higher scores (length × 10 points)
-   - Multiple words in a single combination are cumulative
+The scoring algorithm uses a combination of techniques:
 
-2. **Pattern Recognition** (Bonus Score):
-   - Awards bonus points (5 points) for patterns like:
-     - Three or more consecutive identical characters
-     - This helps identify memorable sequences
+#### A. Dictionary Word Recognition
+- Uses dynamic programming for substring matching
+- Maintains a Set data structure for O(1) word lookups
+- Scores based on word length: length × 10 points
+- Multiple word detection in single combination
+- Time Complexity: O(n²) per combination where n is word length
 
-Example scoring:
-- "CALLNOW" = 70 points (7-letter word)
-- "HOME123" = 40 points (4-letter word)
-- "AAA1234" = 35 points (30 for "AAA" + 5 bonus for repetition)
+#### B. Pattern Analysis
+- Regular expression based pattern matching
+- Detects repeating character sequences
+- Awards bonus points (5 points) for patterns:
+  - Three or more consecutive identical characters
+  - Time Complexity: O(n) for pattern matching
+
+#### C. Combined Scoring Example
+```
+"CALLNOW":
+- "CALL" (4 letters) = 40 points
+- "NOW" (3 letters) = 30 points
+Total = 70 points
+
+"AAA1234":
+- "AAA" = 30 points
+- Pattern bonus = 5 points
+Total = 35 points
+```
+
+### 3. Overall Algorithm Complexity
+- Generation Phase: O(4^n) where n ≤ 7
+- Scoring Phase: O(m²) per combination where m is combination length
+- Total Time Complexity: O(4^n * m²)
+- Space Complexity: O(4^n) for storing combinations
 
 ## Architecture
 
@@ -50,6 +78,7 @@ Example scoring:
    - Memory: 256MB
    - Timeout: 10 seconds
    - Handles the vanity number generation and scoring logic
+   - Optimized for the algorithm's memory and CPU requirements
 
 2. **Amazon DynamoDB**:
    - Table: VanityNumbers
@@ -57,19 +86,37 @@ Example scoring:
    - Sort Key: createdAt (String)
    - Stores generated vanity numbers for each caller
    - Uses on-demand (pay-per-request) billing
+   - Optimized for quick lookups and writes
 
 ### Project Structure
 
 ```
 ├── src/
 │   ├── handler.ts        # Main Lambda handler
-│   ├── mapper.ts         # Phone keypad mapping logic
+│   ├── mapper.ts         # Cartesian product implementation
 │   ├── scorer.ts         # Scoring algorithm implementation
 │   └── types.ts          # TypeScript type definitions
 ├── assets/
 │   └── words.txt         # Dictionary for word recognition
 └── template.yaml         # AWS SAM template
 ```
+
+## Performance Optimizations
+
+1. **Dictionary Lookup**:
+   - Uses Set data structure for O(1) lookups
+   - Case-insensitive matching to reduce dictionary size
+   - Preloaded during Lambda cold start
+
+2. **Combination Generation**:
+   - Optimized array operations
+   - Early filtering of invalid combinations
+   - Memory-efficient string concatenation
+
+3. **Scoring Algorithm**:
+   - Dynamic programming for word finding
+   - Efficient regex pattern matching
+   - Early termination for low-scoring candidates
 
 ## Deployment
 
@@ -128,6 +175,7 @@ The application uses the following environment variables:
 - Dictionary-based scoring ensures meaningful results
 - DynamoDB on-demand capacity for cost optimization
 - Lambda timeout set to 10 seconds for complex combinations
+- Maximum of 16384 combinations per number (4^7)
 
 ## Security
 
@@ -141,22 +189,26 @@ The application uses the following environment variables:
 1. **Lambda Costs**:
    - Pay only for execution time
    - 256MB memory allocation optimized for cost/performance
+   - Average execution time: 1-2 seconds
 
 2. **DynamoDB Costs**:
    - On-demand pricing
    - No minimum capacity requirements
    - Pay per actual request
+   - Minimal storage costs due to small record size
 
 ## Future Enhancements
 
-1. **Performance Optimizations**:
-   - Cache common word patterns
-   - Optimize dictionary lookup
+1. **Algorithm Optimizations**:
+   - Implement trie data structure for faster word lookup
+   - Add memoization for common substrings
+   - Parallel processing for large combination sets
 
 2. **Feature Additions**:
    - Custom dictionary support
    - Industry-specific word lists
    - Blacklist for inappropriate words
+   - Contextual scoring based on business type
 
 3. **Integration Options**:
    - Amazon Connect integration

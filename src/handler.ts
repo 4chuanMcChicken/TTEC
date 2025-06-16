@@ -5,6 +5,22 @@ import { score } from './scorer';
 const db = new DynamoDBClient({});
 const TABLE = process.env.TABLE_NAME!;
 
+/**
+ * AWS Lambda handler for vanity number generation
+ * Implements a two-phase algorithm:
+ * 1. Generation Phase: Creates all possible letter combinations
+ * 2. Scoring Phase: Ranks combinations using word recognition and pattern analysis
+ * 
+ * Time Complexity: O(4^n * m^2) where:
+ * - n is the number of digits (max 7)
+ * - m is the average length of combinations
+ * - 4^n for combination generation
+ * - m^2 for scoring each combination
+ * 
+ * @param {Object} event - Lambda event object
+ * @param {string} event.phoneNumber - Input phone number to convert
+ * @returns {Promise<Object>} Top 3 vanity number suggestions
+ */
 export const handler = async (event: any) => {
   console.log('📞 Received event:', JSON.stringify(event));
 
